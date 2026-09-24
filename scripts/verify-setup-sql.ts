@@ -107,9 +107,13 @@ check("the schema DDL creates every Prisma model as a table", () => {
   assert.ok(models.length > 0, "no models found in schema.prisma");
 
   for (const model of models) {
+    // The generated DDL uses the idempotent form, so accept both spellings.
+    const created =
+      schemaSqlExecutable.includes(`CREATE TABLE "${model}"`) ||
+      schemaSqlExecutable.includes(`CREATE TABLE IF NOT EXISTS "${model}"`);
     assert.ok(
-      schemaSqlExecutable.includes(`CREATE TABLE "${model}"`),
-      `schema.sql is missing a CREATE TABLE for model "${model}" — regenerate it`,
+      created,
+      `schema.sql is missing a CREATE TABLE for model "${model}" — run \`npm run build:sql\``,
     );
   }
   console.log(`      (${models.length} models verified)`);

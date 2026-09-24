@@ -2,66 +2,107 @@
 --  Lunara - database schema (GENERATED FILE - do not edit by hand)
 -- ============================================================================
 --
---  Generated from prisma/schema.prisma. Regenerate with:
+--  Regenerate with:
 --
---    npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma \
---      --script -o prisma/schema.sql
+--    npm run build:sql
 --
---  WHEN TO USE THIS
---  Use this when you want to create the schema WITHOUT a local Node.js
---  checkout - for example by pasting it into the Neon SQL Editor immediately
---  after provisioning the database.
+--  WHAT THIS IS
+--  Complete DDL for a fresh database: all tables, enums, indexes, and foreign
+--  keys. Generated from prisma/schema.prisma.
 --
---  The normal path is `npx prisma db push`, which creates the same tables and
---  also records schema state in Prisma's own metadata table.
+--  THIS FILE IS IDEMPOTENT
+--  Every statement is safe to run against a database that already has some or
+--  all of these objects. Re-running after a partial failure is the intended
+--  recovery path, so a half-applied paste can be fixed by pasting it again.
+--  (Prisma's raw diff output is NOT idempotent; this script adds the guards.)
+--
+--  WHEN TO USE IT
+--  When you want the schema created without a local Node.js checkout - for
+--  example by pasting it into the Neon SQL Editor. The normal workflow is still
+--  `npx prisma db push`, which creates the same objects and additionally
+--  records schema state in Prisma's own metadata table.
 --
 --  SAFETY
---  ＊ Contains only DDL. No DROP, TRUNCATE, or DELETE statements.
---  ＊ NOT idempotent: the CREATE TYPE / CREATE TABLE statements will error if
---    those objects already exist. On an existing database, use `prisma db push`
---    (which diffs) rather than re-running this file.
---  ＊ Creates all objects in the default `public` schema.
+--  ＊ Creates only. No DROP, TRUNCATE, or DELETE statements.
+--  ＊ Creates objects in the default `public` schema.
+--  ＊ Contains no credentials, hashes, or personal data.
+--
+--  IMPORTANT - MATCH THE DATABASE
+--  Neon projects can contain several branches, each with its own database. The
+--  SQL Editor is scoped to one branch. Make sure you run this against the SAME
+--  branch and database that your deployment's DATABASE_URL points at, or the app
+--  will still report missing tables.
 --
 --  AFTER RUNNING THIS
---  Run prisma/setup/reference-data.sql, otherwise /register cannot load its
---  security questions and /education has no categories to filter by.
+--  Run prisma/setup/reference-data.sql. Without it, /register cannot load its
+--  security questions and /education has no categories.
 -- ============================================================================
 
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "CycleRegularity" AS ENUM ('REGULAR', 'SOMEWHAT_IRREGULAR', 'IRREGULAR', 'UNKNOWN');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "CycleRegularity" AS ENUM ('REGULAR', 'SOMEWHAT_IRREGULAR', 'IRREGULAR', 'UNKNOWN');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "TrackingGoal" AS ENUM ('UNDERSTAND_CYCLE', 'PREDICT_PERIOD', 'TRACK_SYMPTOMS', 'CONCEIVE', 'MONITOR_WELLNESS', 'TRACK_PREGNANCY', 'PERIMENOPAUSE');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "TrackingGoal" AS ENUM ('UNDERSTAND_CYCLE', 'PREDICT_PERIOD', 'TRACK_SYMPTOMS', 'CONCEIVE', 'MONITOR_WELLNESS', 'TRACK_PREGNANCY', 'PERIMENOPAUSE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "SymptomType" AS ENUM ('CRAMPS', 'HEADACHE', 'BACK_PAIN', 'BLOATING', 'BREAST_TENDERNESS', 'ACNE', 'FATIGUE', 'NAUSEA', 'DISCHARGE', 'SPOTTING', 'OTHER');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "SymptomType" AS ENUM ('CRAMPS', 'HEADACHE', 'BACK_PAIN', 'BLOATING', 'BREAST_TENDERNESS', 'ACNE', 'FATIGUE', 'NAUSEA', 'DISCHARGE', 'SPOTTING', 'OTHER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "MoodType" AS ENUM ('HAPPY', 'CALM', 'ENERGETIC', 'NEUTRAL', 'SAD', 'IRRITATED', 'ANXIOUS', 'STRESSED');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "MoodType" AS ENUM ('HAPPY', 'CALM', 'ENERGETIC', 'NEUTRAL', 'SAD', 'IRRITATED', 'ANXIOUS', 'STRESSED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "ExerciseLevel" AS ENUM ('NONE', 'LIGHT', 'MODERATE', 'INTENSE');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "ExerciseLevel" AS ENUM ('NONE', 'LIGHT', 'MODERATE', 'INTENSE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "FertilityRecordType" AS ENUM ('FERTILE_WINDOW_START', 'FERTILE_WINDOW_END', 'OVULATION', 'PREDICTED_PERIOD', 'PERIOD_START', 'PERIOD_END');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "FertilityRecordType" AS ENUM ('FERTILE_WINDOW_START', 'FERTILE_WINDOW_END', 'OVULATION', 'PREDICTED_PERIOD', 'PERIOD_START', 'PERIOD_END');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "ReminderType" AS ENUM ('PERIOD', 'FERTILE_WINDOW', 'DAILY_LOG', 'MEDICATION', 'APPOINTMENT', 'CUSTOM');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "ReminderType" AS ENUM ('PERIOD', 'FERTILE_WINDOW', 'DAILY_LOG', 'MEDICATION', 'APPOINTMENT', 'CUSTOM');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('PERIOD', 'FERTILE_WINDOW', 'DAILY_LOG', 'MEDICATION', 'APPOINTMENT', 'CUSTOM', 'SYSTEM');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "NotificationType" AS ENUM ('PERIOD', 'FERTILE_WINDOW', 'DAILY_LOG', 'MEDICATION', 'APPOINTMENT', 'CUSTOM', 'SYSTEM');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateEnum
-CREATE TYPE "AuditEventType" AS ENUM ('ACCOUNT_CREATED', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOGOUT_ALL', 'SESSION_REVOKED', 'PASSWORD_CHANGED', 'PASSWORD_RESET_REQUESTED', 'PASSWORD_RESET_COMPLETED', 'SECURITY_QUESTIONS_CHANGED', 'RECOVERY_VERIFICATION_FAILED', 'RECOVERY_LOCKED', 'DATA_EXPORTED', 'ONBOARDING_COMPLETED', 'ACCOUNT_DELETED');
+-- idempotent: skip if the type already exists
+DO $lunara$ BEGIN
+  CREATE TYPE "AuditEventType" AS ENUM ('ACCOUNT_CREATED', 'LOGIN', 'LOGIN_FAILED', 'LOGOUT', 'LOGOUT_ALL', 'SESSION_REVOKED', 'PASSWORD_CHANGED', 'PASSWORD_RESET_REQUESTED', 'PASSWORD_RESET_COMPLETED', 'SECURITY_QUESTIONS_CHANGED', 'RECOVERY_VERIFICATION_FAILED', 'RECOVERY_LOCKED', 'DATA_EXPORTED', 'ONBOARDING_COMPLETED', 'ACCOUNT_DELETED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -82,7 +123,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Profile" (
+CREATE TABLE IF NOT EXISTS "Profile" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "ageRange" TEXT,
@@ -100,7 +141,7 @@ CREATE TABLE "Profile" (
 );
 
 -- CreateTable
-CREATE TABLE "SecurityQuestion" (
+CREATE TABLE IF NOT EXISTS "SecurityQuestion" (
     "id" TEXT NOT NULL,
     "question" TEXT NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT true,
@@ -111,7 +152,7 @@ CREATE TABLE "SecurityQuestion" (
 );
 
 -- CreateTable
-CREATE TABLE "UserSecurityAnswer" (
+CREATE TABLE IF NOT EXISTS "UserSecurityAnswer" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "questionId" TEXT NOT NULL,
@@ -123,7 +164,7 @@ CREATE TABLE "UserSecurityAnswer" (
 );
 
 -- CreateTable
-CREATE TABLE "Session" (
+CREATE TABLE IF NOT EXISTS "Session" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
@@ -138,7 +179,7 @@ CREATE TABLE "Session" (
 );
 
 -- CreateTable
-CREATE TABLE "PasswordRecoverySession" (
+CREATE TABLE IF NOT EXISTS "PasswordRecoverySession" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
@@ -154,7 +195,7 @@ CREATE TABLE "PasswordRecoverySession" (
 );
 
 -- CreateTable
-CREATE TABLE "AuditEvent" (
+CREATE TABLE IF NOT EXISTS "AuditEvent" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
     "event" "AuditEventType" NOT NULL,
@@ -167,7 +208,7 @@ CREATE TABLE "AuditEvent" (
 );
 
 -- CreateTable
-CREATE TABLE "RateLimitBucket" (
+CREATE TABLE IF NOT EXISTS "RateLimitBucket" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "count" INTEGER NOT NULL DEFAULT 0,
@@ -180,7 +221,7 @@ CREATE TABLE "RateLimitBucket" (
 );
 
 -- CreateTable
-CREATE TABLE "Cycle" (
+CREATE TABLE IF NOT EXISTS "Cycle" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "startDate" DATE NOT NULL,
@@ -196,7 +237,7 @@ CREATE TABLE "Cycle" (
 );
 
 -- CreateTable
-CREATE TABLE "Period" (
+CREATE TABLE IF NOT EXISTS "Period" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "startDate" DATE NOT NULL,
@@ -209,7 +250,7 @@ CREATE TABLE "Period" (
 );
 
 -- CreateTable
-CREATE TABLE "FertilityRecord" (
+CREATE TABLE IF NOT EXISTS "FertilityRecord" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" DATE NOT NULL,
@@ -223,7 +264,7 @@ CREATE TABLE "FertilityRecord" (
 );
 
 -- CreateTable
-CREATE TABLE "DailyLog" (
+CREATE TABLE IF NOT EXISTS "DailyLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" DATE NOT NULL,
@@ -235,7 +276,7 @@ CREATE TABLE "DailyLog" (
 );
 
 -- CreateTable
-CREATE TABLE "Symptom" (
+CREATE TABLE IF NOT EXISTS "Symptom" (
     "id" TEXT NOT NULL,
     "dailyLogId" TEXT NOT NULL,
     "type" "SymptomType" NOT NULL,
@@ -246,7 +287,7 @@ CREATE TABLE "Symptom" (
 );
 
 -- CreateTable
-CREATE TABLE "Mood" (
+CREATE TABLE IF NOT EXISTS "Mood" (
     "id" TEXT NOT NULL,
     "dailyLogId" TEXT NOT NULL,
     "type" "MoodType" NOT NULL,
@@ -256,7 +297,7 @@ CREATE TABLE "Mood" (
 );
 
 -- CreateTable
-CREATE TABLE "WellnessLog" (
+CREATE TABLE IF NOT EXISTS "WellnessLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" DATE NOT NULL,
@@ -276,7 +317,7 @@ CREATE TABLE "WellnessLog" (
 );
 
 -- CreateTable
-CREATE TABLE "IntimateLog" (
+CREATE TABLE IF NOT EXISTS "IntimateLog" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" DATE NOT NULL,
@@ -290,7 +331,7 @@ CREATE TABLE "IntimateLog" (
 );
 
 -- CreateTable
-CREATE TABLE "Pregnancy" (
+CREATE TABLE IF NOT EXISTS "Pregnancy" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "startDate" DATE NOT NULL,
@@ -304,7 +345,7 @@ CREATE TABLE "Pregnancy" (
 );
 
 -- CreateTable
-CREATE TABLE "Reminder" (
+CREATE TABLE IF NOT EXISTS "Reminder" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" "ReminderType" NOT NULL,
@@ -320,7 +361,7 @@ CREATE TABLE "Reminder" (
 );
 
 -- CreateTable
-CREATE TABLE "Notification" (
+CREATE TABLE IF NOT EXISTS "Notification" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" "NotificationType" NOT NULL,
@@ -335,7 +376,7 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateTable
-CREATE TABLE "ArticleCategory" (
+CREATE TABLE IF NOT EXISTS "ArticleCategory" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -349,7 +390,7 @@ CREATE TABLE "ArticleCategory" (
 );
 
 -- CreateTable
-CREATE TABLE "Article" (
+CREATE TABLE IF NOT EXISTS "Article" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -368,208 +409,266 @@ CREATE TABLE "Article" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE INDEX "User_email_idx" ON "User"("email");
+CREATE INDEX IF NOT EXISTS "User_email_idx" ON "User"("email");
 
 -- CreateIndex
-CREATE INDEX "User_role_idx" ON "User"("role");
+CREATE INDEX IF NOT EXISTS "User_role_idx" ON "User"("role");
 
 -- CreateIndex
-CREATE INDEX "User_deletedAt_idx" ON "User"("deletedAt");
+CREATE INDEX IF NOT EXISTS "User_deletedAt_idx" ON "User"("deletedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
-CREATE INDEX "Profile_userId_idx" ON "Profile"("userId");
+CREATE INDEX IF NOT EXISTS "Profile_userId_idx" ON "Profile"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SecurityQuestion_question_key" ON "SecurityQuestion"("question");
+CREATE UNIQUE INDEX IF NOT EXISTS "SecurityQuestion_question_key" ON "SecurityQuestion"("question");
 
 -- CreateIndex
-CREATE INDEX "SecurityQuestion_active_idx" ON "SecurityQuestion"("active");
+CREATE INDEX IF NOT EXISTS "SecurityQuestion_active_idx" ON "SecurityQuestion"("active");
 
 -- CreateIndex
-CREATE INDEX "UserSecurityAnswer_userId_idx" ON "UserSecurityAnswer"("userId");
+CREATE INDEX IF NOT EXISTS "UserSecurityAnswer_userId_idx" ON "UserSecurityAnswer"("userId");
 
 -- CreateIndex
-CREATE INDEX "UserSecurityAnswer_questionId_idx" ON "UserSecurityAnswer"("questionId");
+CREATE INDEX IF NOT EXISTS "UserSecurityAnswer_questionId_idx" ON "UserSecurityAnswer"("questionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserSecurityAnswer_userId_questionId_key" ON "UserSecurityAnswer"("userId", "questionId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserSecurityAnswer_userId_questionId_key" ON "UserSecurityAnswer"("userId", "questionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Session_tokenHash_key" ON "Session"("tokenHash");
+CREATE UNIQUE INDEX IF NOT EXISTS "Session_tokenHash_key" ON "Session"("tokenHash");
 
 -- CreateIndex
-CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+CREATE INDEX IF NOT EXISTS "Session_userId_idx" ON "Session"("userId");
 
 -- CreateIndex
-CREATE INDEX "Session_userId_revokedAt_idx" ON "Session"("userId", "revokedAt");
+CREATE INDEX IF NOT EXISTS "Session_userId_revokedAt_idx" ON "Session"("userId", "revokedAt");
 
 -- CreateIndex
-CREATE INDEX "Session_expiresAt_idx" ON "Session"("expiresAt");
+CREATE INDEX IF NOT EXISTS "Session_expiresAt_idx" ON "Session"("expiresAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PasswordRecoverySession_tokenHash_key" ON "PasswordRecoverySession"("tokenHash");
+CREATE UNIQUE INDEX IF NOT EXISTS "PasswordRecoverySession_tokenHash_key" ON "PasswordRecoverySession"("tokenHash");
 
 -- CreateIndex
-CREATE INDEX "PasswordRecoverySession_userId_idx" ON "PasswordRecoverySession"("userId");
+CREATE INDEX IF NOT EXISTS "PasswordRecoverySession_userId_idx" ON "PasswordRecoverySession"("userId");
 
 -- CreateIndex
-CREATE INDEX "PasswordRecoverySession_expiresAt_idx" ON "PasswordRecoverySession"("expiresAt");
+CREATE INDEX IF NOT EXISTS "PasswordRecoverySession_expiresAt_idx" ON "PasswordRecoverySession"("expiresAt");
 
 -- CreateIndex
-CREATE INDEX "AuditEvent_userId_createdAt_idx" ON "AuditEvent"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AuditEvent_userId_createdAt_idx" ON "AuditEvent"("userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "AuditEvent_event_createdAt_idx" ON "AuditEvent"("event", "createdAt");
+CREATE INDEX IF NOT EXISTS "AuditEvent_event_createdAt_idx" ON "AuditEvent"("event", "createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "RateLimitBucket_key_key" ON "RateLimitBucket"("key");
+CREATE UNIQUE INDEX IF NOT EXISTS "RateLimitBucket_key_key" ON "RateLimitBucket"("key");
 
 -- CreateIndex
-CREATE INDEX "RateLimitBucket_expiresAt_idx" ON "RateLimitBucket"("expiresAt");
+CREATE INDEX IF NOT EXISTS "RateLimitBucket_expiresAt_idx" ON "RateLimitBucket"("expiresAt");
 
 -- CreateIndex
-CREATE INDEX "Cycle_userId_startDate_idx" ON "Cycle"("userId", "startDate");
+CREATE INDEX IF NOT EXISTS "Cycle_userId_startDate_idx" ON "Cycle"("userId", "startDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Cycle_userId_startDate_key" ON "Cycle"("userId", "startDate");
+CREATE UNIQUE INDEX IF NOT EXISTS "Cycle_userId_startDate_key" ON "Cycle"("userId", "startDate");
 
 -- CreateIndex
-CREATE INDEX "Period_userId_startDate_idx" ON "Period"("userId", "startDate");
+CREATE INDEX IF NOT EXISTS "Period_userId_startDate_idx" ON "Period"("userId", "startDate");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Period_userId_startDate_key" ON "Period"("userId", "startDate");
+CREATE UNIQUE INDEX IF NOT EXISTS "Period_userId_startDate_key" ON "Period"("userId", "startDate");
 
 -- CreateIndex
-CREATE INDEX "FertilityRecord_userId_date_idx" ON "FertilityRecord"("userId", "date");
+CREATE INDEX IF NOT EXISTS "FertilityRecord_userId_date_idx" ON "FertilityRecord"("userId", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "FertilityRecord_userId_date_type_key" ON "FertilityRecord"("userId", "date", "type");
+CREATE UNIQUE INDEX IF NOT EXISTS "FertilityRecord_userId_date_type_key" ON "FertilityRecord"("userId", "date", "type");
 
 -- CreateIndex
-CREATE INDEX "DailyLog_userId_date_idx" ON "DailyLog"("userId", "date");
+CREATE INDEX IF NOT EXISTS "DailyLog_userId_date_idx" ON "DailyLog"("userId", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DailyLog_userId_date_key" ON "DailyLog"("userId", "date");
+CREATE UNIQUE INDEX IF NOT EXISTS "DailyLog_userId_date_key" ON "DailyLog"("userId", "date");
 
 -- CreateIndex
-CREATE INDEX "Symptom_dailyLogId_idx" ON "Symptom"("dailyLogId");
+CREATE INDEX IF NOT EXISTS "Symptom_dailyLogId_idx" ON "Symptom"("dailyLogId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Symptom_dailyLogId_type_key" ON "Symptom"("dailyLogId", "type");
+CREATE UNIQUE INDEX IF NOT EXISTS "Symptom_dailyLogId_type_key" ON "Symptom"("dailyLogId", "type");
 
 -- CreateIndex
-CREATE INDEX "Mood_dailyLogId_idx" ON "Mood"("dailyLogId");
+CREATE INDEX IF NOT EXISTS "Mood_dailyLogId_idx" ON "Mood"("dailyLogId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Mood_dailyLogId_type_key" ON "Mood"("dailyLogId", "type");
+CREATE UNIQUE INDEX IF NOT EXISTS "Mood_dailyLogId_type_key" ON "Mood"("dailyLogId", "type");
 
 -- CreateIndex
-CREATE INDEX "WellnessLog_userId_date_idx" ON "WellnessLog"("userId", "date");
+CREATE INDEX IF NOT EXISTS "WellnessLog_userId_date_idx" ON "WellnessLog"("userId", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "WellnessLog_userId_date_key" ON "WellnessLog"("userId", "date");
+CREATE UNIQUE INDEX IF NOT EXISTS "WellnessLog_userId_date_key" ON "WellnessLog"("userId", "date");
 
 -- CreateIndex
-CREATE INDEX "IntimateLog_userId_date_idx" ON "IntimateLog"("userId", "date");
+CREATE INDEX IF NOT EXISTS "IntimateLog_userId_date_idx" ON "IntimateLog"("userId", "date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "IntimateLog_userId_date_key" ON "IntimateLog"("userId", "date");
+CREATE UNIQUE INDEX IF NOT EXISTS "IntimateLog_userId_date_key" ON "IntimateLog"("userId", "date");
 
 -- CreateIndex
-CREATE INDEX "Pregnancy_userId_active_idx" ON "Pregnancy"("userId", "active");
+CREATE INDEX IF NOT EXISTS "Pregnancy_userId_active_idx" ON "Pregnancy"("userId", "active");
 
 -- CreateIndex
-CREATE INDEX "Reminder_userId_enabled_idx" ON "Reminder"("userId", "enabled");
+CREATE INDEX IF NOT EXISTS "Reminder_userId_enabled_idx" ON "Reminder"("userId", "enabled");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Reminder_userId_type_key" ON "Reminder"("userId", "type");
+CREATE UNIQUE INDEX IF NOT EXISTS "Reminder_userId_type_key" ON "Reminder"("userId", "type");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_read_idx" ON "Notification"("userId", "read");
+CREATE INDEX IF NOT EXISTS "Notification_userId_read_idx" ON "Notification"("userId", "read");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ArticleCategory_name_key" ON "ArticleCategory"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "ArticleCategory_name_key" ON "ArticleCategory"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ArticleCategory_slug_key" ON "ArticleCategory"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "ArticleCategory_slug_key" ON "ArticleCategory"("slug");
 
 -- CreateIndex
-CREATE INDEX "ArticleCategory_active_sortOrder_idx" ON "ArticleCategory"("active", "sortOrder");
+CREATE INDEX IF NOT EXISTS "ArticleCategory_active_sortOrder_idx" ON "ArticleCategory"("active", "sortOrder");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Article_slug_key" ON "Article"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Article_slug_key" ON "Article"("slug");
 
 -- CreateIndex
-CREATE INDEX "Article_categoryId_idx" ON "Article"("categoryId");
+CREATE INDEX IF NOT EXISTS "Article_categoryId_idx" ON "Article"("categoryId");
 
 -- CreateIndex
-CREATE INDEX "Article_published_publishedAt_idx" ON "Article"("published", "publishedAt");
+CREATE INDEX IF NOT EXISTS "Article_published_publishedAt_idx" ON "Article"("published", "publishedAt");
 
 -- CreateIndex
-CREATE INDEX "Article_title_idx" ON "Article"("title");
+CREATE INDEX IF NOT EXISTS "Article_title_idx" ON "Article"("title");
 
 -- AddForeignKey
-ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "UserSecurityAnswer" ADD CONSTRAINT "UserSecurityAnswer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "UserSecurityAnswer" ADD CONSTRAINT "UserSecurityAnswer_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "UserSecurityAnswer" ADD CONSTRAINT "UserSecurityAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "SecurityQuestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "UserSecurityAnswer" ADD CONSTRAINT "UserSecurityAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "SecurityQuestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "PasswordRecoverySession" ADD CONSTRAINT "PasswordRecoverySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "PasswordRecoverySession" ADD CONSTRAINT "PasswordRecoverySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "AuditEvent" ADD CONSTRAINT "AuditEvent_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "AuditEvent" ADD CONSTRAINT "AuditEvent_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Cycle" ADD CONSTRAINT "Cycle_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Cycle" ADD CONSTRAINT "Cycle_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Period" ADD CONSTRAINT "Period_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Period" ADD CONSTRAINT "Period_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "FertilityRecord" ADD CONSTRAINT "FertilityRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "FertilityRecord" ADD CONSTRAINT "FertilityRecord_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "DailyLog" ADD CONSTRAINT "DailyLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "DailyLog" ADD CONSTRAINT "DailyLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Symptom" ADD CONSTRAINT "Symptom_dailyLogId_fkey" FOREIGN KEY ("dailyLogId") REFERENCES "DailyLog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Symptom" ADD CONSTRAINT "Symptom_dailyLogId_fkey" FOREIGN KEY ("dailyLogId") REFERENCES "DailyLog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Mood" ADD CONSTRAINT "Mood_dailyLogId_fkey" FOREIGN KEY ("dailyLogId") REFERENCES "DailyLog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Mood" ADD CONSTRAINT "Mood_dailyLogId_fkey" FOREIGN KEY ("dailyLogId") REFERENCES "DailyLog"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "WellnessLog" ADD CONSTRAINT "WellnessLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "WellnessLog" ADD CONSTRAINT "WellnessLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "IntimateLog" ADD CONSTRAINT "IntimateLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "IntimateLog" ADD CONSTRAINT "IntimateLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Pregnancy" ADD CONSTRAINT "Pregnancy_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Pregnancy" ADD CONSTRAINT "Pregnancy_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Reminder" ADD CONSTRAINT "Reminder_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Article" ADD CONSTRAINT "Article_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "ArticleCategory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Article" ADD CONSTRAINT "Article_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "ArticleCategory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
 
 -- AddForeignKey
-ALTER TABLE "Article" ADD CONSTRAINT "Article_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- idempotent: skip if the constraint already exists
+DO $lunara$ BEGIN
+  ALTER TABLE "Article" ADD CONSTRAINT "Article_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $lunara$;
+
