@@ -58,7 +58,7 @@ export default async function RecoverAccountPage() {
     <AuthCard
       wide
       title="Answer your security questions"
-      description="These are the three questions you chose when you created your account."
+      description="This is the question you chose when you created your account."
       footer={
         <>
           Need to start over?{" "}

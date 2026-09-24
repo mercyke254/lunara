@@ -24,8 +24,12 @@ export interface SecurityQuestionOption {
  * if someone could change them from a borrowed session, they could take over the
  * account permanently.
  *
- * All three must be supplied at once. A partial update could leave the account
- * with fewer than three answers, which would break recovery entirely.
+ * The full set is replaced at once rather than merged, so the account can never
+ * end up holding a mix of old and new answers — recovery requires the submitted
+ * set to match the stored set exactly.
+ *
+ * Row count comes from `REQUIRED_SECURITY_QUESTION_COUNT`, so this form does not
+ * need editing to change how many questions are managed.
  */
 export function SecurityQuestionsForm({
   questions,
@@ -35,14 +39,20 @@ export function SecurityQuestionsForm({
   currentQuestionIds: string[];
 }) {
   const [state, formAction] = useActionState(updateSecurityQuestionsAction, IDLE_STATE);
-  const [selected, setSelected] = useState<string[]>(
-    currentQuestionIds.length === REQUIRED_SECURITY_QUESTION_COUNT
-      ? currentQuestionIds
-      : ["", "", ""],
+  // Prefill from the account's current questions so "changing" starts from what
+  // is already set. Falls back to an empty slot when the account has none, or
+  // fewer than the current requirement.
+  const [selected, setSelected] = useState<string[]>(() =>
+    Array.from(
+      { length: REQUIRED_SECURITY_QUESTION_COUNT },
+      (_, index) => currentQuestionIds[index] ?? "",
+    ),
   );
 
   const distinct =
-    selected.every((id) => id !== "") && new Set(selected).size === REQUIRED_SECURITY_QUESTION_COUNT;
+    selected.length === REQUIRED_SECURITY_QUESTION_COUNT &&
+    selected.every((id) => id !== "") &&
+    new Set(selected).size === REQUIRED_SECURITY_QUESTION_COUNT;
 
   function setQuestionAt(index: number, value: string) {
     setSelected((prev) => {
@@ -82,11 +92,19 @@ export function SecurityQuestionsForm({
         />
       </Field>
 
-      {[0, 1, 2].map((index) => {
+      {Array.from({ length: REQUIRED_SECURITY_QUESTION_COUNT }, (_, index) => index).map((index) => {
         const usedElsewhere = selected.filter((id, i) => id !== "" && i !== index);
         return (
           <div key={index} className="space-y-2 rounded-2xl border border-border bg-muted/40 p-3.5">
-            <Field label={`Question ${index + 1}`} htmlFor={`questionId_${index}`} required>
+            <Field
+              label={
+                REQUIRED_SECURITY_QUESTION_COUNT === 1
+                  ? "Your recovery question"
+                  : `Question ${index + 1}`
+              }
+              htmlFor={`questionId_${index}`}
+              required
+            >
               <NativeSelect
                 id={`questionId_${index}`}
                 name={`questionId_${index}`}

@@ -3,7 +3,10 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/auth/password";
-import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
+import {
+  MAX_SECURITY_QUESTION_COUNT,
+  REQUIRED_SECURITY_QUESTION_COUNT,
+} from "@/lib/constants";
 import { fromISODate } from "@/lib/dates";
 import type {
   CycleRegularity,
@@ -159,22 +162,33 @@ export const securityAnswerInputSchema = z.object({
 });
 
 /**
- * The three answers, which must reference three DIFFERENT questions.
- * Duplicate questions would weaken recovery by reducing the number of
- * independent factors.
+ * The chosen questions and their answers.
+ *
+ * Accepts between REQUIRED and MAX entries. The lower bound is the sign-up
+ * requirement; the upper bound stops a crafted submission from forcing an
+ * unbounded number of bcrypt comparisons.
+ *
+ * Answers must reference DIFFERENT questions: repeating one would reduce the
+ * number of independent factors without the user realising it.
  */
 export const securityAnswerSetSchema = z
   .array(securityAnswerInputSchema)
-  .length(
+  .min(
     REQUIRED_SECURITY_QUESTION_COUNT,
-    `Choose ${REQUIRED_SECURITY_QUESTION_COUNT} security questions.`,
+    REQUIRED_SECURITY_QUESTION_COUNT === 1
+      ? "Choose a security question and answer it."
+      : `Choose ${REQUIRED_SECURITY_QUESTION_COUNT} security questions.`,
+  )
+  .max(
+    MAX_SECURITY_QUESTION_COUNT,
+    `Choose at most ${MAX_SECURITY_QUESTION_COUNT} security questions.`,
   )
   .superRefine((answers, ctx) => {
     const ids = answers.map((a) => a.questionId);
     if (new Set(ids).size !== ids.length) {
       ctx.addIssue({
         code: "custom",
-        message: "Choose three different questions.",
+        message: "Choose a different question for each answer.",
         path: [0, "questionId"],
       });
     }
@@ -236,7 +250,7 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
-/** Step 4 of recovery: the three answers for the questions we handed back. */
+/** Recovery step: the answers to the questions we handed back. */
 export const recoveryVerifySchema = z.object({
   answers: z
     .array(
@@ -246,7 +260,7 @@ export const recoveryVerifySchema = z.object({
       }),
     )
     .min(1)
-    .max(REQUIRED_SECURITY_QUESTION_COUNT),
+    .max(MAX_SECURITY_QUESTION_COUNT),
 });
 
 export const resetPasswordSchema = z

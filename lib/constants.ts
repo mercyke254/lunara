@@ -64,8 +64,11 @@ export const DISCLAIMERS = {
 // ---------------------------------------------------------------------------
 
 /**
- * The seeded catalogue of security questions. Users pick three distinct ones.
- * Questions are memorable facts rather than anything derivable from a profile.
+ * The seeded catalogue of security questions.
+ *
+ * Users pick from this list when they create an account, and again if they
+ * change their recovery setup. Questions are memorable facts rather than
+ * anything derivable from a public profile.
  */
 export const SECURITY_QUESTIONS: readonly string[] = [
   "What was the name of your first school?",
@@ -77,8 +80,37 @@ export const SECURITY_QUESTIONS: readonly string[] = [
   "What was the name of your first teacher?",
 ] as const;
 
-/** Users must select exactly this many questions. */
-export const REQUIRED_SECURITY_QUESTION_COUNT = 3;
+/**
+ * How many security questions a user must set up.
+ *
+ * Set to 1 to keep registration short: email, password, confirm password, then
+ * one question and its answer.
+ *
+ * SECURITY TRADE-OFF - worth knowing before changing this.
+ * These answers are the ONLY route back into an account whose password is
+ * forgotten, so the setup is only as strong as its weakest answer. A single
+ * question is guessable by someone who knows the person ("what was your first
+ * pet's name?"), and the account's entire recovery path rests on it.
+ *
+ * What still protects a one-question setup:
+ *   - the attacker must already know the account's email address
+ *   - recovery requests are rate limited per IP (5/hour) and per account (3/hour)
+ *   - a recovery session permits 5 attempts in total, then locks
+ *   - sessions expire after 20 minutes and the token rotates on verification
+ *   - failures are indistinguishable from unknown-account responses
+ *
+ * Raising this to 2 or 3 is a one-line change: everything downstream reads this
+ * constant, and `recovery-flow.ts` already handles accounts holding more answers
+ * than the current requirement.
+ */
+export const REQUIRED_SECURITY_QUESTION_COUNT = 1;
+
+/**
+ * Hard upper bound, applied as a defence so a crafted submission cannot force an
+ * unbounded number of bcrypt comparisons (a cheap denial-of-service against the
+ * recovery endpoint).
+ */
+export const MAX_SECURITY_QUESTION_COUNT = 3;
 
 // ---------------------------------------------------------------------------
 // Logging options

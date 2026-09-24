@@ -23,7 +23,7 @@ import { listActiveSessions, getCurrentSessionId } from "@/lib/auth/session";
 import { getRecentAuditEvents } from "@/lib/security/audit";
 import { prisma } from "@/lib/db/prisma";
 import { formatMedium } from "@/lib/dates";
-import { AUDIT_EVENT_LABELS, DISCLAIMERS } from "@/lib/constants";
+import { AUDIT_EVENT_LABELS, DISCLAIMERS, REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Privacy centre",
@@ -224,7 +224,7 @@ export default async function PrivacyPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {questions.length < 3 ? (
+            {questions.length < REQUIRED_SECURITY_QUESTION_COUNT ? (
               <p className="text-sm text-muted-foreground">
                 The security-question catalogue is not seeded on this instance.
               </p>

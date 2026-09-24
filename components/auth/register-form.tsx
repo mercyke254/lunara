@@ -26,15 +26,18 @@ export interface SecurityQuestionOption {
 /**
  * Registration form.
  *
- * Three security questions are required at sign-up, because they are the only
- * account-recovery factor in this build (there is no email provider). Two
- * deliberate UX decisions:
+ * Security questions are required at sign-up because they are the only
+ * account-recovery factor in this build (no email provider is configured). The
+ * number collected is driven by `REQUIRED_SECURITY_QUESTION_COUNT`, so this form
+ * does not need editing to change how many questions are asked.
  *
- *  1. The same question cannot be chosen twice. Options already used in another
- *     row are disabled, so the rule is visible rather than enforced by an error.
- *  2. The answers are plain text inputs with an explicit note about what happens
- *     to them. Concealing them behind dots would encourage short, unmemorable
- *     answers, and the real protection is that they are hashed — not hidden.
+ * Two deliberate UX decisions:
+ *
+ *  1. Rows are rendered from the constant, never hard-coded, so the form cannot
+ *     drift out of step with what the server validates.
+ *  2. The answer is a plain text input with a note about what happens to it.
+ *     Concealing it behind dots would encourage short, unmemorable answers, and
+ *     the real protection is that it is hashed — not hidden.
  */
 export function RegisterForm({
   questions,
@@ -46,13 +49,20 @@ export function RegisterForm({
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [selected, setSelected] = useState<string[]>(["", "", ""]);
+  // One slot per required question, derived rather than hard-coded.
+  const [selected, setSelected] = useState<string[]>(() =>
+    Array.from({ length: REQUIRED_SECURITY_QUESTION_COUNT }, () => ""),
+  );
 
   const policySatisfied = isPasswordPolicySatisfied(password);
   const mismatch = confirm.length > 0 && confirm !== password;
 
+  // Ready when every slot has a distinct choice. The Set check keeps the
+  // no-duplicates rule meaningful if this is ever raised above one question.
   const questionsReady =
-    selected.every((id) => id !== "") && new Set(selected).size === REQUIRED_SECURITY_QUESTION_COUNT;
+    selected.length === REQUIRED_SECURITY_QUESTION_COUNT &&
+    selected.every((id) => id !== "") &&
+    new Set(selected).size === REQUIRED_SECURITY_QUESTION_COUNT;
 
   function setQuestionAt(index: number, value: string) {
     setSelected((prev) => {
@@ -171,17 +181,22 @@ export function RegisterForm({
         </Alert>
 
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Choose {REQUIRED_SECURITY_QUESTION_COUNT} different questions and
-          answers that you will still remember in a year. Answers are not
-          case-sensitive and extra spaces are ignored.
+          {REQUIRED_SECURITY_QUESTION_COUNT === 1
+            ? "Pick one question and give an answer you will still remember in a year. Pick something specific to you rather than something a friend could guess."
+            : `Choose ${REQUIRED_SECURITY_QUESTION_COUNT} different questions and answers you will still remember in a year.`}{" "}
+          Answers are not case-sensitive and extra spaces are ignored.
         </p>
 
-        {[0, 1, 2].map((index) => {
+        {Array.from({ length: REQUIRED_SECURITY_QUESTION_COUNT }, (_, index) => index).map((index) => {
           const usedElsewhere = selected.filter((id, i) => id !== "" && i !== index);
           return (
             <div key={index} className="space-y-2 rounded-2xl border border-border bg-muted/40 p-3.5">
               <Field
-                label={`Question ${index + 1}`}
+                label={
+                  REQUIRED_SECURITY_QUESTION_COUNT === 1
+                    ? "Your recovery question"
+                    : `Question ${index + 1}`
+                }
                 htmlFor={`questionId_${index}`}
                 required
               >

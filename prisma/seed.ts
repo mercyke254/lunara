@@ -1,7 +1,11 @@
 import "dotenv/config";
 import { prisma } from "../lib/db/prisma";
 import { hashPassword, hashSecurityAnswer } from "../lib/auth/password-imports";
-import { SECURITY_QUESTIONS, ARTICLE_CATEGORIES } from "../lib/constants";
+import {
+  ARTICLE_CATEGORIES,
+  REQUIRED_SECURITY_QUESTION_COUNT,
+  SECURITY_QUESTIONS,
+} from "../lib/constants";
 import { addDays, toDateOnly, today } from "../lib/dates";
 
 /**
@@ -537,7 +541,7 @@ async function seedDemoUser() {
   const questions = await prisma.securityQuestion.findMany({
     where: { active: true },
     orderBy: { question: "asc" },
-    take: 3,
+    take: REQUIRED_SECURITY_QUESTION_COUNT,
     select: { id: true },
   });
 
@@ -748,7 +752,7 @@ async function seedAdminUser(): Promise<string | null> {
   const questions = await prisma.securityQuestion.findMany({
     where: { active: true },
     orderBy: { question: "asc" },
-    take: 3,
+    take: REQUIRED_SECURITY_QUESTION_COUNT,
     select: { id: true },
   });
 
@@ -784,13 +788,36 @@ async function seedAdminUser(): Promise<string | null> {
 }
 
 async function main() {
-  // Seeding creates accounts with KNOWN passwords, so it must never run by
+  /**
+   * CONTENT-ONLY MODE: `SEED_CONTENT_ONLY=1`.
+   *
+   * Seeds the reference data and the article library but creates NO accounts.
+   * Added because the full seed creates `admin@lunara.app` and `demo@lunara.demo`
+   * with passwords published in this repository - an open administrator login on
+   * any publicly reachable deployment, even though the article library it also
+   * loads is perfectly safe.
+   *
+   * Because nothing credential-bearing is written in this mode, it is exempt from
+   * the ALLOW_SEED guard: there is no known-password account to protect against.
+   */
+  const contentOnly = process.env.SEED_CONTENT_ONLY === "1";
+
+  if (contentOnly) {
+    console.log("Content-only seed: reference data and articles. No accounts will be created.\n");
+    await seedReferenceData();
+    await seedArticles(null);
+    console.log("\nContent seed complete. No accounts were created.\n");
+    return;
+  }
+
+  // Full seeding creates accounts with KNOWN passwords, so it must never run by
   // accident against something that looks like a real deployment.
   if (process.env.NODE_ENV === "production" && process.env.ALLOW_SEED !== "1") {
     console.error(
       "Refusing to seed: NODE_ENV is production.\n" +
-        "Seeding creates demo accounts with published passwords. If you genuinely\n" +
-        "intend to seed this production database, set ALLOW_SEED=1 explicitly.",
+        "Full seeding creates demo accounts with passwords published in this repo.\n" +
+        "If you only want the article library, use SEED_CONTENT_ONLY=1 instead.\n" +
+        "If you genuinely intend to create the accounts too, set ALLOW_SEED=1.",
     );
     process.exit(1);
   }

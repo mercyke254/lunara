@@ -24,7 +24,7 @@ import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
  * FLOW
  *   1. user submits an email
  *   2. we ALWAYS advance to the questions step (see "enumeration" below)
- *   3. user answers the three questions they chose at sign-up
+ *   3. user answers the question(s) they chose at sign-up
  *   4. on success the session is marked verified and the token is ROTATED
  *   5. user sets a new password; all existing sessions are invalidated
  *
@@ -228,8 +228,8 @@ export async function startRecovery(
     question: a.question.question,
   }));
 
-  // Defensive: an account without three answers cannot use this flow. Return
-  // catalogue decoys so the response shape stays identical.
+  // Defensive: an account with no security answers at all cannot use this flow.
+  // Return catalogue decoys so the response shape stays identical either way.
   if (questions.length < REQUIRED_SECURITY_QUESTION_COUNT) {
     return {
       ok: true,
@@ -271,7 +271,12 @@ async function loadActiveRecoverySession() {
 }
 
 /**
- * STEP 3 - verify the three answers.
+ * STEP 3 - verify the submitted answers.
+ *
+ * The check is deliberately COUNT-AGNOSTIC: it requires that the submission
+ * covers exactly the number of questions the account actually holds, rather than
+ * a fixed number. That keeps recovery working for accounts created when more
+ * questions were mandatory, and means a partial submission can never pass.
  *
  * On success the token is ROTATED: the pre-verification token is replaced by a
  * fresh one, so a token captured before verification cannot be used to set a
@@ -328,8 +333,17 @@ export async function verifyRecoveryAnswers(
     answerHash: byQuestionId.get(s.questionId) ?? "",
   }));
 
+  // How many answers this account holds. The submission must match it exactly,
+  // so a partial or duplicated submission fails rather than passing on fewer
+  // factors than the account was set up with.
+  const storedCount = await prisma.userSecurityAnswer.count({
+    where: { userId: session.userId },
+  });
+
   const verified =
-    stored.length >= REQUIRED_SECURITY_QUESTION_COUNT &&
+    storedCount >= REQUIRED_SECURITY_QUESTION_COUNT &&
+    submissions.length === storedCount &&
+    stored.length === storedCount &&
     sessionLimit.ok &&
     (await verifySecurityAnswerSet(comparisons));
 
@@ -470,7 +484,7 @@ export async function getRecoverySessionState(): Promise<
 /**
  * The questions to render on the /recover-account step.
  *
- * Returns the user's own three questions when a live recovery session exists.
+ * Returns the user's own questions when a live recovery session exists.
  * Otherwise it returns a DECOY set drawn from the public catalogue, so the page
  * renders identically for an email that is not registered. The decoy path can
  * never succeed: there is no session row for its cookie, so verification fails

@@ -15,7 +15,7 @@ export interface RecoveryQuestion {
 }
 
 /**
- * Step 3 of recovery: answer the three security questions.
+ * Recovery step 3: answer the security question.
  *
  * Notes:
  *  - the question ids travel as hidden fields, which is safe: an id identifies a
@@ -32,7 +32,7 @@ export function RecoveryForm({ questions }: { questions: RecoveryQuestion[] }) {
     <form action={formAction} className="space-y-4" noValidate>
       <Alert variant="info">
         <AlertDescription>
-          Answer all three questions and we will let you choose a new password.
+          Answer your security question and we will let you choose a new password.
           Verification is limited to a small number of attempts per session.
         </AlertDescription>
       </Alert>

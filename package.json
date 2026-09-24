@@ -17,6 +17,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:seed:content": "tsx scripts/seed-content.ts",
+    "db:check": "tsx scripts/check-db.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

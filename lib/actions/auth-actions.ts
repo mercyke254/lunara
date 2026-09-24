@@ -29,7 +29,10 @@ import {
   rateLimitKeys,
   resetRateLimit,
 } from "@/lib/security/rate-limit";
-import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
+import {
+  MAX_SECURITY_QUESTION_COUNT,
+  REQUIRED_SECURITY_QUESTION_COUNT,
+} from "@/lib/constants";
 import {
   changePasswordSchema,
   deleteAccountSchema,
@@ -76,12 +79,18 @@ const GENERIC_SIGN_IN_ERROR = "Email or password is incorrect.";
 // ---------------------------------------------------------------------------
 
 /**
- * Read the three security questions/answers from the form.
- * Field naming convention: questionId_0/answer_0 ... questionId_2/answer_2.
+ * Read the security questions/answers from the form.
+ *
+ * Field naming convention: questionId_0/answer_0, questionId_1/answer_1, ...
+ *
+ * Scans up to MAX_SECURITY_QUESTION_COUNT slots and keeps whichever pairs were
+ * actually submitted. That makes this work unchanged whether the forms render
+ * one question or several, and it cannot invent an entry: a blank slot is
+ * skipped rather than submitted as an empty answer.
  */
 function parseSecurityAnswers(formData: FormData): Array<{ questionId: string; answer: string }> {
   const answers: Array<{ questionId: string; answer: string }> = [];
-  for (let index = 0; index < REQUIRED_SECURITY_QUESTION_COUNT; index += 1) {
+  for (let index = 0; index < MAX_SECURITY_QUESTION_COUNT; index += 1) {
     const questionId = String(formData.get(`questionId_${index}`) ?? "");
     const answer = String(formData.get(`answer_${index}`) ?? "");
     if (questionId && answer) answers.push({ questionId, answer });
@@ -147,16 +156,23 @@ export async function registerAction(
       );
     }
 
-    // Validate the chosen questions against the active catalogue. This also
-    // prevents a caller from inventing question ids of their own.
+    // Validate the chosen questions against the active catalogue.
+    //
+    // Checking against the SUBMITTED count (rather than a fixed number) both
+    // enforces the minimum requirement and rejects invented question ids: if a
+    // caller supplies an id that is not in the catalogue, or one that has been
+    // deactivated, the counts diverge and the submission is refused.
     const questionIds = parsed.data.securityAnswers.map((a) => a.questionId);
     const validQuestions = await prisma.securityQuestion.findMany({
       where: { id: { in: questionIds }, active: true },
       select: { id: true },
     });
 
-    if (validQuestions.length !== REQUIRED_SECURITY_QUESTION_COUNT) {
-      return errorState("Choose three security questions.", {
+    if (
+      validQuestions.length !== questionIds.length ||
+      validQuestions.length < REQUIRED_SECURITY_QUESTION_COUNT
+    ) {
+      return errorState("Please choose your recovery question again.", {
         securityAnswers: "Those questions are no longer available. Please reselect.",
       });
     }
@@ -476,7 +492,7 @@ export async function forgotPasswordAction(
   });
 }
 
-/** Step 3. Verify the three answers. */
+/** Recovery step 3. Verify the submitted answers. */
 export async function verifyRecoveryAnswersAction(
   _prevState: ActionState,
   formData: FormData,
@@ -489,7 +505,7 @@ export async function verifyRecoveryAnswersAction(
     });
 
     if (!parsed.success) {
-      return errorState("Please answer all three questions.", fieldErrors(parsed.error));
+      return errorState("Please answer your security question.", fieldErrors(parsed.error));
     }
 
     const result = await verifyRecoveryAnswers(parsed.data.answers, requestHeaders);
@@ -574,8 +590,11 @@ export async function updateSecurityQuestionsAction(
       where: { id: { in: questionIds }, active: true },
       select: { id: true },
     });
-    if (validQuestions.length !== REQUIRED_SECURITY_QUESTION_COUNT) {
-      return errorState("Choose three security questions.");
+    if (
+      validQuestions.length !== questionIds.length ||
+      validQuestions.length < REQUIRED_SECURITY_QUESTION_COUNT
+    ) {
+      return errorState("Please choose your recovery question again.");
     }
 
     const answerHashes = await Promise.all(
@@ -586,8 +605,9 @@ export async function updateSecurityQuestionsAction(
     );
 
     await prisma.$transaction(async (tx) => {
-      // Replace the full set: partially updating could leave the account with
-      // fewer than three answers, which would break recovery.
+      // Replace the full set rather than merging. A partial update could leave
+      // the account holding a mix of old and new answers, and recovery requires
+      // the submission to match the stored set exactly.
       await tx.userSecurityAnswer.deleteMany({ where: { userId: sessionUser.id } });
       await tx.userSecurityAnswer.createMany({
         data: answerHashes.map((a) => ({

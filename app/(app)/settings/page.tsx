@@ -10,6 +10,7 @@ import { ChangePasswordForm } from "@/components/forms/change-password-form";
 import { SecurityQuestionsForm } from "@/components/forms/security-questions-form";
 import { requireUser, getProfileSummary } from "@/lib/auth/current-user";
 import { prisma } from "@/lib/db/prisma";
+import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -135,7 +136,7 @@ export default async function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {questions.length < 3 ? (
+            {questions.length < REQUIRED_SECURITY_QUESTION_COUNT ? (
               <p className="text-sm text-muted-foreground">
                 The security-question catalogue has not been seeded on this
                 instance. Run the seed script and reload.

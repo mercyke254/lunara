@@ -24,7 +24,7 @@ export function ForgotPasswordForm() {
       <Alert variant="info">
         <AlertDescription>
           If an account exists with this email, you can continue with account
-          recovery. You will need to answer the three security questions you chose
+          recovery. You will need to answer the security question you chose
           when you signed up.
         </AlertDescription>
       </Alert>

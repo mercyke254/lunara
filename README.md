@@ -331,12 +331,35 @@ different long passphrases authenticating the same account.
 
 ### Security-question answers
 
+Sign-up collects **one** question and its answer, driven by
+`REQUIRED_SECURITY_QUESTION_COUNT` in `lib/constants.ts`. The number of rows the
+forms render and the number the server validates both read that constant, so
+changing it is a one-line edit; `recovery-flow.ts` is count-agnostic and handles
+accounts holding more answers than the current requirement.
+
 - Normalised **before** hashing: trimmed, lower-cased, internal whitespace collapsed
   (plus NFKC so visually identical Unicode normalises identically).
 - Hashed with bcrypt cost 12. Only the hash is stored.
 - Never returned by an API, never placed in a URL, never logged.
 - Verification attempts **all** submitted answers rather than short-circuiting, so
   response timing cannot reveal how many were correct.
+- The submission must match the account's stored answer count **exactly**, so a
+  partial or duplicated submission fails rather than passing on fewer factors.
+
+#### The trade-off in a single question
+
+One answer is the only route back into an account whose password is forgotten, so
+recovery is exactly as strong as that answer. A question like "what was your first
+pet's name?" is guessable by someone who knows the person.
+
+What still holds with one question: the attacker must already know the account's
+email; recovery requests are rate limited per IP (5/hour) and per account (3/hour);
+a recovery session permits 5 attempts total and then locks; sessions expire in 20
+minutes and the token rotates on verification; and failures are indistinguishable
+from unknown-account responses.
+
+To strengthen it, raise `REQUIRED_SECURITY_QUESTION_COUNT` to 2 or 3. Nothing else
+needs changing, and existing accounts keep working.
 
 ### Sessions
 

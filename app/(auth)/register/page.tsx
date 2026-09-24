@@ -6,6 +6,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { prisma } from "@/lib/db/prisma";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { EmptyState } from "@/components/shared/empty-state";
+import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
 import { ShieldAlert } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -29,7 +30,7 @@ export default async function RegisterPage() {
 
   // Registration cannot complete without the catalogue, so fail honestly rather
   // than rendering a form that cannot be submitted.
-  if (questions.length < 3) {
+  if (questions.length < REQUIRED_SECURITY_QUESTION_COUNT) {
     return (
       <AuthCard title="Create your account" wide>
         <EmptyState
@@ -50,7 +51,7 @@ export default async function RegisterPage() {
     <AuthCard
       wide
       title="Create your account"
-      description="A few details and three recovery questions. That is everything Lunara needs to start."
+      description="A few details and one recovery question. That is everything Lunara needs to start."
       footer={
         <>
           Already have an account?{" "}
