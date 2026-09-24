@@ -1,0 +1,619 @@
+// ============================================================================
+//  Lunara - Prisma schema
+//  Database: Neon PostgreSQL (the only supported database)
+//  ORM:      Prisma v7 (Rust-free client + driver adapter)
+//
+//  NOTE ON CONNECTIONS
+//  In Prisma v7 the connection string is NOT declared here. It lives in
+//  `prisma.config.ts` (for the CLI) and in the driver adapter used by the
+//  application (see lib/db/prisma.ts).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+//  ENUMS
+// ============================================================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CycleRegularity {
+  REGULAR
+  SOMEWHAT_IRREGULAR
+  IRREGULAR
+  UNKNOWN
+}
+
+enum TrackingGoal {
+  UNDERSTAND_CYCLE
+  PREDICT_PERIOD
+  TRACK_SYMPTOMS
+  CONCEIVE
+  MONITOR_WELLNESS
+  TRACK_PREGNANCY
+  PERIMENOPAUSE
+}
+
+enum SymptomType {
+  CRAMPS
+  HEADACHE
+  BACK_PAIN
+  BLOATING
+  BREAST_TENDERNESS
+  ACNE
+  FATIGUE
+  NAUSEA
+  DISCHARGE
+  SPOTTING
+  OTHER
+}
+
+enum MoodType {
+  HAPPY
+  CALM
+  ENERGETIC
+  NEUTRAL
+  SAD
+  IRRITATED
+  ANXIOUS
+  STRESSED
+}
+
+enum ExerciseLevel {
+  NONE
+  LIGHT
+  MODERATE
+  INTENSE
+}
+
+enum FertilityRecordType {
+  FERTILE_WINDOW_START
+  FERTILE_WINDOW_END
+  OVULATION
+  PREDICTED_PERIOD
+  PERIOD_START
+  PERIOD_END
+}
+
+enum ReminderType {
+  PERIOD
+  FERTILE_WINDOW
+  DAILY_LOG
+  MEDICATION
+  APPOINTMENT
+  CUSTOM
+}
+
+enum NotificationType {
+  PERIOD
+  FERTILE_WINDOW
+  DAILY_LOG
+  MEDICATION
+  APPOINTMENT
+  CUSTOM
+  SYSTEM
+}
+
+/// Audit events record *that* a sensitive action happened, never its content.
+/// No password, security answer, token, or hash is ever written to this table.
+enum AuditEventType {
+  ACCOUNT_CREATED
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  LOGOUT_ALL
+  SESSION_REVOKED
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  SECURITY_QUESTIONS_CHANGED
+  RECOVERY_VERIFICATION_FAILED
+  RECOVERY_LOCKED
+  DATA_EXPORTED
+  ONBOARDING_COMPLETED
+  ACCOUNT_DELETED
+}
+
+// ============================================================================
+//  IDENTITY & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  /// Always stored lower-cased and trimmed. Unique to prevent duplicate accounts.
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(USER)
+  dateOfBirth  DateTime? @db.Date
+
+  /// Set when the onboarding wizard completes; null means "show onboarding".
+  onboardedAt DateTime?
+
+  /// Timestamp of the last credential change. Used to invalidate sessions that
+  /// were issued before a password reset ("require sign in again").
+  passwordChangedAt DateTime @default(now())
+
+  /// Hard floor for session validity. Any session created at or before this
+  /// instant is rejected. Used by "sign out of all devices" and account deletion.
+  sessionsInvalidBefore DateTime?
+
+  // --- brute-force protection ---
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+
+  /// Soft-delete marker. Personal records are purged; the row is retained only
+  /// in anonymised form so that unique-email re-registration stays consistent.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile          Profile?
+  securityAnswers  UserSecurityAnswer[]
+  sessions         Session[]
+  recoverySessions PasswordRecoverySession[]
+  cycles           Cycle[]
+  periods          Period[]
+  dailyLogs        DailyLog[]
+  wellnessLogs     WellnessLog[]
+  intimateLogs     IntimateLog[]
+  fertilityRecords FertilityRecord[]
+  pregnancies      Pregnancy[]
+  reminders        Reminder[]
+  notifications    Notification[]
+  auditEvents      AuditEvent[]
+  articlesAuthored Article[]              @relation("ArticleAuthor")
+
+  @@index([email])
+  @@index([role])
+  @@index([deletedAt])
+}
+
+/// Extended cycle/wellness preferences captured during onboarding.
+model Profile {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ageRange           String?
+  averageCycleLength Int              @default(28)
+  averagePeriodLength Int             @default(5)
+  lastPeriodStart    DateTime?        @db.Date
+  cycleRegularity    CycleRegularity  @default(UNKNOWN)
+  trackingGoals      TrackingGoal[]   @default([])
+
+  /// Reminder master switches. Individual reminders are rows in `Reminder`.
+  notificationsEnabled Boolean @default(true)
+  /// Privacy preference: exclude intimate logs from analytics aggregations.
+  shareAnonymousStats  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// The catalogue of security questions. Seeded; `active` controls availability.
+model SecurityQuestion {
+  id       String  @id @default(cuid())
+  question String  @unique
+  active   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  answers UserSecurityAnswer[]
+
+  @@index([active])
+}
+
+/// A user's answer to one security question.
+/// `answerHash` is a one-way hash of the NORMALISED answer. The plaintext answer
+/// is never persisted, never returned by any API, and never logged.
+model UserSecurityAnswer {
+  id         String @id @default(cuid())
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   SecurityQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  answerHash String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, questionId])
+  @@index([userId])
+  @@index([questionId])
+}
+
+/// An authenticated session. Only the SHA-256 hash of the session token is
+/// stored, so a database leak does not yield usable session cookies.
+model Session {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+
+  expiresAt DateTime
+  /// Set when the session is explicitly revoked (sign out / sign out all).
+  revokedAt DateTime?
+
+  /// Coarse device fingerprint for the "Active sessions" privacy screen.
+  userAgent String?
+  /// Salted hash of the client IP - never the raw address.
+  ipHash    String?
+  lastSeenAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+/// In-progress account-recovery attempt (security-question flow).
+/// Holds only a hashed, high-entropy token plus an attempt counter.
+model PasswordRecoverySession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// SHA-256 hash of a 256-bit cryptographically secure random token.
+  /// The raw token is only ever held in an httpOnly cookie.
+  tokenHash String @unique
+
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(5)
+  expiresAt    DateTime
+
+  /// Set once the three security answers have been verified. A session may only
+  /// set a new password when this is non-null, which is what stops a caller from
+  /// skipping straight to the reset step.
+  verifiedAt DateTime?
+
+  /// Set after the password has been changed. Makes the session single-use.
+  consumedAt DateTime?
+  ipHash     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Append-only audit trail for sensitive actions.
+model AuditEvent {
+  id String @id @default(cuid())
+
+  /// Null for events about a non-existent or deleted account (e.g. a failed
+  /// login against an unknown email) - keeps the log enumeration-safe.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  event     AuditEventType
+  ipHash    String?
+  userAgent String?
+  /// Non-sensitive structured context only. MUST NOT contain secrets,
+  /// passwords, security answers, tokens, or hashes.
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([event, createdAt])
+}
+
+/// Persistent fixed-window rate-limit counters, so limits hold across
+/// serverless invocations rather than resetting per process.
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  count       Int      @default(0)
+  windowStart DateTime
+  expiresAt   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+// ============================================================================
+//  CYCLE TRACKING
+// ============================================================================
+
+/// A completed or in-progress menstrual cycle.
+model Cycle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startDate DateTime @db.Date
+  /// Null while the cycle is the current one.
+  endDate   DateTime? @db.Date
+  /// Observed length in days (endDate - startDate, or start-to-next-start).
+  cycleLength  Int?
+  periodLength Int?
+  notes        String? @db.Text
+  /// True when the row was generated from a prediction rather than user input.
+  estimated    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, startDate])
+  @@index([userId, startDate])
+}
+
+/// A bleeding episode. Kept separate from `Cycle` because users may record
+/// spotting or irregular bleeding that does not constitute a full cycle.
+model Period {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
+  notes     String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, startDate])
+  @@index([userId, startDate])
+}
+
+/// A user-entered or system-estimated fertility marker for a single day.
+model FertilityRecord {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date DateTime            @db.Date
+  type FertilityRecordType
+  /// True when derived from the calculation engine; false when user-entered.
+  estimated Boolean @default(true)
+  note      String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date, type])
+  @@index([userId, date])
+}
+
+// ============================================================================
+//  DAILY LOGGING
+// ============================================================================
+
+/// One day's journal entry. Unique per user per calendar day.
+model DailyLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date  DateTime @db.Date
+  notes String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  symptoms Symptom[]
+  moods    Mood[]
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Symptom {
+  id         String   @id @default(cuid())
+  dailyLogId String
+  dailyLog   DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+
+  type     SymptomType
+  /// Optional 1-5 intensity. Null means "logged, intensity not specified".
+  severity Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([dailyLogId, type])
+  @@index([dailyLogId])
+}
+
+model Mood {
+  id         String   @id @default(cuid())
+  dailyLogId String
+  dailyLog   DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+
+  type MoodType
+
+  createdAt DateTime @default(now())
+
+  @@unique([dailyLogId, type])
+  @@index([dailyLogId])
+}
+
+/// Body and lifestyle metrics for a day. Separate from `DailyLog` so wellness
+/// can be charted independently and written from the Wellness screen.
+model WellnessLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date DateTime @db.Date
+
+  // --- body ---
+  weight           Float?
+  /// Basal body temperature in degrees Celsius.
+  temperature      Float?
+  /// Sleep duration in hours.
+  sleep            Float?
+  /// Subjective 1-5 energy rating.
+  energy           Int?
+
+  // --- lifestyle ---
+  water            Float?        @db.DoublePrecision
+  exerciseMinutes  Int?
+  exercise         ExerciseLevel?
+  /// Subjective 1-5 sleep quality rating.
+  sleepQuality     Int?
+  /// Subjective 1-5 stress rating (5 = most stressed).
+  stress           Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+/// Optional, private-by-default sexual-health tracking.
+/// Rows are excluded from anonymous aggregates unless the user opts in, and are
+/// never surfaced in the admin dashboard.
+model IntimateLog {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date DateTime @db.Date
+
+  activityType   String?
+  protectionUsed Boolean?
+  notes          String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+// ============================================================================
+//  PREGNANCY MODE
+// ============================================================================
+
+model Pregnancy {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// First day of the last menstrual period used to date the pregnancy.
+  startDate DateTime  @db.Date
+  dueDate   DateTime  @db.Date
+  active    Boolean   @default(true)
+  endedAt   DateTime? @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, active])
+}
+
+// ============================================================================
+//  REMINDERS & NOTIFICATIONS
+// ============================================================================
+
+model Reminder {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    ReminderType
+  enabled Boolean      @default(true)
+
+  /// Free-text label (used by CUSTOM and MEDICATION reminders).
+  label String?
+  /// Local wall-clock time-of-day as "HH:mm" (24h).
+  timeOfDay String @default("09:00")
+  /// Days of lead time before the event (e.g. 2 days before predicted period).
+  leadTimeDays Int @default(0)
+  /// For one-off reminders.
+  scheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One reminder row per type per user. This is the natural key, and making it
+  /// a real unique constraint means "save this reminder" is an upsert that can
+  /// never accumulate duplicates.
+  @@unique([userId, type])
+  @@index([userId, enabled])
+}
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String           @db.Text
+  read    Boolean          @default(false)
+
+  /// When the notification is due (used by the delivery worker).
+  scheduledFor DateTime?
+  deliveredAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+// ============================================================================
+//  EDUCATION HUB
+// ============================================================================
+
+model ArticleCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles Article[]
+
+  @@index([active, sortOrder])
+}
+
+model Article {
+  id         String          @id @default(cuid())
+  title      String
+  slug       String          @unique
+  categoryId String
+  category   ArticleCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  excerpt     String
+  content     String  @db.Text
+  readingTime Int     @default(5)
+  tags        String[]  @default([])
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  authorId    String?
+  author      User?     @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([published, publishedAt])
+  @@index([title])
+}

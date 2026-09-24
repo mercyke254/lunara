@@ -1,0 +1,66 @@
+# ============================================================================
+# Lunara - git ignore rules
+# ============================================================================
+
+# --- dependencies ---
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+!.yarn/patches
+!.yarn/releases
+
+# --- secrets / environment ---
+# NEVER commit real credentials. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# --- Next.js build output ---
+/.next/
+/out/
+/build/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Prisma ---
+# The Rust-free client is generated from schema.prisma at install/build time.
+/lib/generated/
+/generated/
+
+# --- testing / coverage ---
+/coverage/
+.nyc_output/
+
+# --- logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# --- editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.local
+
+# --- misc ---
+.eslintcache
+.cache/
+.tmp/
+temp/
+.vercel

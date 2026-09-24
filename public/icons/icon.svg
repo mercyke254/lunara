@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Lunara">
+  <title>Lunara</title>
+  <defs>
+    <linearGradient id="lunara-icon-gradient" x1="96" y1="72" x2="424" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B7BD8"/>
+      <stop offset="0.55" stop-color="#A79AEC"/>
+      <stop offset="1" stop-color="#8FB8F0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soft lavender field so the mark reads on light and dark surfaces. -->
+  <rect width="512" height="512" rx="112" fill="#F6F4FE"/>
+  <circle cx="256" cy="256" r="196" fill="url(#lunara-icon-gradient)" opacity="0.12"/>
+
+  <!-- The cycle ring: 78% arc, opening at the upper right. -->
+  <circle
+    cx="256"
+    cy="256"
+    r="140"
+    fill="none"
+    stroke="url(#lunara-icon-gradient)"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-dasharray="686 196"
+    transform="rotate(-118 256 256)"
+  />
+
+  <!-- Nucleus: today. -->
+  <circle cx="256" cy="256" r="44" fill="url(#lunara-icon-gradient)"/>
+
+  <!-- Satellite: a marked point on the cycle. -->
+  <circle cx="256" cy="104" r="22" fill="url(#lunara-icon-gradient)" opacity="0.85"/>
+</svg>
