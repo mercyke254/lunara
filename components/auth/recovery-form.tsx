@@ -70,7 +70,7 @@ export function RecoveryForm({ questions }: { questions: RecoveryQuestion[] }) {
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         Answers are not case-sensitive. If you cannot remember it, you will
-        need to create a new account — we cannot bypass them for you.
+        need to create a new account — we cannot bypass it for you.
       </p>
     </form>
   );
