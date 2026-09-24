@@ -504,6 +504,91 @@ The application uses the Node.js runtime (bcrypt and the `pg` driver both requir
 it), so no edge-runtime configuration is needed. `proxy.ts` runs at the network
 boundary and deliberately does **no** database access.
 
+### Troubleshooting: "Something went wrong" on most routes
+
+This is the most common first-deploy failure, so it is worth recognising on sight.
+
+**Symptom.** `/` and `/login` render fine, but `/register`, `/education`, and every
+signed-in screen hit Lunara's error boundary. Meanwhile `/api/health` cheerfully
+reports `{"status":"ok","database":"reachable"}`.
+
+**Why the health check is misleading.** `/api/health` runs `SELECT 1`, which
+touches no tables. It proves the *connection* works, not that the *schema* exists.
+Compare which routes fail instead:
+
+| Route | Touches tables? | Result with no schema |
+| --- | --- | --- |
+| `/` | no (static) | renders |
+| `/login` | no (reads a cookie only) | renders |
+| `/api/health` | no (`SELECT 1`) | reports `ok` |
+| `/register` | reads `SecurityQuestion` | **error** |
+| `/education` | reads `ArticleCategory`, `Article` | **error** |
+
+Every route that touches a **table** fails; every route that only uses the
+connection succeeds. That is the signature of a reachable database with no schema
+— i.e. `prisma db push` was never run.
+
+**Fix — option A, with a local checkout (recommended):**
+
+```bash
+git clone https://github.com/<you>/lunara.git
+cd lunara && npm install
+cp .env.example .env     # set DATABASE_URL (pooled Neon string) + AUTH_SECRET
+npx prisma db push
+npx prisma db seed       # read the credential warning below first
+```
+
+**Fix — option B, no local checkout.** In the Neon Console, open **SQL Editor** and
+run these in order:
+
+1. `prisma/schema.sql` — creates 21 tables, 10 enums, and all indexes and foreign keys
+2. `prisma/setup/reference-data.sql` — inserts the 7 security questions and 11 article categories
+
+Registration and the education hub then work. The hub shows its "no articles yet"
+empty state until you run `prisma db seed`, which also adds the article library.
+
+> `prisma/schema.sql` is **not** idempotent — it errors if those objects already
+> exist. Use `prisma db push` (which diffs) on a database that already has tables.
+
+> `prisma db push` additionally records Prisma's schema-state metadata, which
+> option B does not. If you use option B and later adopt `prisma migrate`, the CLI
+> may need the database baselined first.
+
+### Do not seed a public deployment with the default credentials
+
+`prisma db seed` creates two accounts with **published** passwords:
+`demo@lunara.demo` and `admin@lunara.app`. On a publicly reachable deployment,
+that is an open administrator login.
+
+Before seeding anything public, set strong values *and* point the admin account at
+yourself:
+
+```bash
+ADMIN_EMAIL="you@yourdomain.com" \
+SEED_ADMIN_PASSWORD="$(openssl rand -base64 24)" \
+SEED_USER_PASSWORD="$(openssl rand -base64 24)" \
+npx prisma db seed
+```
+
+The seed refuses to run when `NODE_ENV=production` unless `ALLOW_SEED=1` is set:
+that guard exists to make this a deliberate decision rather than an accident.
+
+Or create only the reference data (option B), register normally through the UI,
+then promote your own account:
+
+```sql
+UPDATE "User" SET "role" = 'ADMIN' WHERE "email" = 'you@yourdomain.com';
+```
+
+### Pages render but sign-in never persists
+
+`AUTH_SECRET` is missing, or shorter than 32 characters. Session creation requires
+it, and the keyed IP digest in the audit trail is derived from it.
+
+```bash
+openssl rand -base64 48
+```
+
 ---
 
 ## Verification

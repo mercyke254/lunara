@@ -10,6 +10,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "verify:calc": "tsx scripts/verify-calculations.ts",
+    "verify:sql": "tsx scripts/verify-setup-sql.ts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
