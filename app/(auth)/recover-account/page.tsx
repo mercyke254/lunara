@@ -10,7 +10,7 @@ import { getRecoveryChallenge } from "@/lib/auth/recovery/recovery-flow";
 
 export const metadata: Metadata = {
   title: "Security questions",
-  description: "Answer your security questions to reset your password.",
+  description: "Answer your security question to reset your password.",
 };
 
 export const dynamic = "force-dynamic";
@@ -57,7 +57,7 @@ export default async function RecoverAccountPage() {
   return (
     <AuthCard
       wide
-      title="Answer your security questions"
+      title="Answer your security question"
       description="This is the question you chose when you created your account."
       footer={
         <>

@@ -7,6 +7,7 @@ import { Field } from "@/components/forms/field";
 import { FormMessage } from "@/components/forms/form-message";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
+import { REQUIRED_SECURITY_QUESTION_COUNT } from "@/lib/constants";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface RecoveryQuestion {
@@ -44,7 +45,7 @@ export function RecoveryForm({ questions }: { questions: RecoveryQuestion[] }) {
           <input type="hidden" name={`questionId_${index}`} value={q.questionId} />
 
           <Field
-            label={`Question ${index + 1}`}
+            label={REQUIRED_SECURITY_QUESTION_COUNT === 1 ? "Your recovery question" : `Question ${index + 1}`}
             htmlFor={`answer_${index}`}
             required
             hint={<span className="font-medium text-foreground">{q.question}</span>}
@@ -64,11 +65,11 @@ export function RecoveryForm({ questions }: { questions: RecoveryQuestion[] }) {
       ))}
 
       <SubmitButton block size="lg" pendingLabel="Verifying…">
-        Verify answers
+        Verify answer
       </SubmitButton>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Answers are not case-sensitive. If you cannot remember them, you will
+        Answers are not case-sensitive. If you cannot remember it, you will
         need to create a new account — we cannot bypass them for you.
       </p>
     </form>

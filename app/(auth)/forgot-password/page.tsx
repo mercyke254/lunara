@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthCard
       title="Forgot your password?"
-      description="Enter your email address and we will take you to your security questions."
+      description="Enter your email address and we will take you to your recovery question."
       footer={
         <>
           Remembered it?{" "}
